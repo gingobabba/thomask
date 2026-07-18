@@ -107,6 +107,16 @@ const skillLines = (s) => [
   ...(s.misc ? [{ label: "Misc (gear, feats, traits)", val: s.misc }] : []),
 ];
 
+/* Which Knowledge identifies which creature type (PF1 monster ID rules) */
+const CREATURE_KNOWLEDGE = [
+  ["Aberrations · Oozes", "Knowledge (Dungeoneering)"],
+  ["Animals · Fey · Plants · Monstrous Humanoids", "Knowledge (Nature)"],
+  ["Constructs · Dragons · Magical Beasts", "Knowledge (Arcana)"],
+  ["Humanoids", "Knowledge (Local)"],
+  ["Outsiders (demons, devils, angels)", "Knowledge (Planes)"],
+  ["Undead", "Knowledge (Religion)"],
+];
+
 /* Complete abilities catalog — imported from the sheet, organized as sections */
 const FEAT_SECTIONS = [
   ["Feats", [
@@ -370,6 +380,7 @@ export default function App() {
   const [levelUp, setLevelUp] = useState(null); // { hpGain, applied, text, loading }
   const [inspAuto, setInspAuto] = useState(true);
   const [hpEdit, setHpEdit] = useState(null); // { amount: "" }
+  const [knowPick, setKnowPick] = useState(false); // Inspirational Expertise creature-type picker
   useEffect(() => { Object.assign(BASE, base); }, [base]);
 
   /* resolve roll defs — skills and Snake Style read the live skill model */
@@ -704,7 +715,7 @@ Under 180 words, plain text, numbered.`
                       {
                         name: "Inspirational Expertise", tag: ieOn ? "PARTY +4 UP" : "not up", on: ieOn,
                         desc: ieOn ? "Allies +4 to hit the marked foe" : "Free: Knowledge check to ID a foe → party +4",
-                        action: ieOn ? null : { label: "ID foe", fn: () => openRoll("skill:Knowledge (Local)") },
+                        action: ieOn ? null : { label: "ID foe", fn: () => setKnowPick(true) },
                       },
                       {
                         name: "Drop prone / speak / drop item", tag: "anytime", on: false,
@@ -1270,6 +1281,34 @@ Under 180 words, plain text, numbered.`
         </Btn>
       </footer>
       </div>{/* end ruled page */}
+
+      {/* ===== KNOWLEDGE PICKER (Inspirational Expertise) ===== */}
+      {knowPick && (
+        <Overlay onClose={() => setKnowPick(false)}>
+          <div style={{ fontFamily: F.disp, fontSize: 20, fontWeight: 700, color: C.brass, textTransform: "uppercase", letterSpacing: 1 }}>Identify the foe</div>
+          <div style={{ fontSize: 12, color: C.dim, marginTop: 6, lineHeight: 1.5 }}>
+            Pick the creature type — it maps to the right Knowledge skill. Beating the DC lets you grant the party +4 to hit it.
+          </div>
+          <div style={{ display: "grid", gap: 6, marginTop: 14 }}>
+            {CREATURE_KNOWLEDGE.map(([type, know]) => {
+              const sk = skills.find((s) => s.name === know);
+              return (
+                <button key={know} onClick={() => { setKnowPick(false); openRoll("skill:" + know); }} style={{
+                  textAlign: "left", padding: "9px 11px", borderRadius: 8, cursor: "pointer",
+                  border: `1px solid ${C.line}`, background: C.panel2, color: C.parch,
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, color: C.parch }}>{type}</div>
+                    <div style={{ fontSize: 11, color: C.dim, fontFamily: F.mono, marginTop: 2 }}>{know.replace("Knowledge ", "")}</div>
+                  </div>
+                  <span style={{ fontFamily: F.mono, fontSize: 15, color: C.brass, fontWeight: 700 }}>+{skillTotal(sk)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Overlay>
+      )}
 
       {/* ===== HP DAMAGE / HEAL MODAL ===== */}
       {hpEdit && (() => {
