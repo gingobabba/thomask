@@ -1,0 +1,39 @@
+# OPTIONAL: deploy to Vercel on every push to main.
+#
+# Most people don't need this. The easier path with the SAME result is to
+# import the repo once at https://vercel.com/new — Vercel then auto-deploys
+# every push with no secrets to manage. Use this workflow only if you'd rather
+# drive deploys from GitHub Actions.
+#
+# If you do use it, add three repo secrets (Settings → Secrets and variables →
+# Actions): VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID. It skips itself
+# cleanly when the token isn't set, so it won't show red failures otherwise.
+
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_VERCEL_DEPLOY == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm i -g vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
